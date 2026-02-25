@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.graph_objects as go
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
@@ -67,7 +68,6 @@ y_prob_baseline = baseline_model.predict_proba(X_test_scaled)[:, 1]
 
 
 # GridSearchCV to find the best C value automatically
-# Scoring on f1 to balance precision and recall for imbalanced data
 print("\nRunning GridSearchCV to find best C...")
 
 param_grid = {'C': [0.001, 0.01, 0.1, 0.5, 1, 5, 10]}
@@ -84,7 +84,6 @@ best_C = grid_search.best_params_['C']
 print(f"Best C found: {best_C}")
 print(f"Best CV F1 Score: {round(grid_search.best_score_, 4)}")
 
-# Print full GridSearchCV results
 results_df = pd.DataFrame(grid_search.cv_results_)[['param_C', 'mean_test_score', 'std_test_score']]
 results_df.columns = ['C Value', 'Mean F1 Score', 'Std F1 Score']
 results_df = results_df.sort_values('Mean F1 Score', ascending=False)
@@ -93,7 +92,6 @@ print(results_df.to_string(index=False))
 
 
 # Main model using best C from GridSearchCV with probability calibration
-# isotonic calibration produces more realistic confidence scores
 base_model = LogisticRegression(max_iter=1000, C=best_C, solver='lbfgs')
 model = CalibratedClassifierCV(base_model, cv=5, method='isotonic')
 model.fit(X_train_resampled, y_train_resampled)
@@ -130,7 +128,7 @@ plt.savefig("feature/visualizations/confusion_matrix.png")
 plt.close()
 
 
-# ROC curve comparing baseline vs SMOTE model
+# ROC curve — Matplotlib version
 fpr1, tpr1, _ = roc_curve(y_test, y_prob_baseline)
 auc1          = auc(fpr1, tpr1)
 
@@ -151,6 +149,38 @@ plt.savefig("feature/visualizations/roc_curve.png")
 plt.close()
 
 print(f"\nROC AUC — Baseline: {auc1:.4f} | SMOTE: {auc2:.4f}")
+
+
+# ROC curve — Plotly interactive version
+fig = go.Figure()
+
+fig.add_trace(go.Scatter(
+    x=fpr1, y=tpr1,
+    mode='lines',
+    name=f'Baseline (AUC = {auc1:.3f})'
+))
+
+fig.add_trace(go.Scatter(
+    x=fpr2, y=tpr2,
+    mode='lines',
+    name=f'SMOTE (AUC = {auc2:.3f})'
+))
+
+fig.add_trace(go.Scatter(
+    x=[0, 1], y=[0, 1],
+    mode='lines',
+    line=dict(dash='dash', color='black'),
+    name='Random Classifier'
+))
+
+fig.update_layout(
+    title='Interactive ROC Curve - Logistic Regression Performance',
+    xaxis_title='False Positive Rate',
+    yaxis_title='True Positive Rate',
+    legend=dict(x=0.6, y=0.1)
+)
+
+fig.write_html("feature/visualizations/roc_curve_interactive.html")
 
 
 # GridSearchCV C value vs F1 Score visualization
@@ -201,5 +231,6 @@ print("  - class_before_smote.png")
 print("  - class_after_smote.png")
 print("  - confusion_matrix.png")
 print("  - roc_curve.png")
+print("  - roc_curve_interactive.html")
 print("  - gridsearch_results.png")
 print("  - feature_coefficients.png")
