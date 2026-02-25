@@ -1,4 +1,4 @@
-/* Reset */
+/* ─── Reset ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -34,14 +34,12 @@ body {
   min-height: 100vh;
 }
 
-/*  Layout  */
 .layout {
   display: grid;
   grid-template-columns: 260px 1fr;
   min-height: 100vh;
 }
 
-/*  Sidebar*/
 .sidebar {
   background: var(--navy);
   color: #fff;
@@ -153,14 +151,12 @@ body {
   color: rgba(255,255,255,0.3);
 }
 
-/*  Content */
 .content {
   display: flex;
   flex-direction: column;
   background: var(--cream);
 }
 
-/*Topbar */
 .topbar {
   display: flex;
   align-items: center;
@@ -181,7 +177,6 @@ body {
   color: var(--ink-mid);
 }
 
-/*  Page Head */
 .page-head {
   padding: 2.5rem 2.5rem 1.5rem;
   border-bottom: 1px solid var(--border);
@@ -209,7 +204,6 @@ body {
   max-width: 500px;
 }
 
-/*Form */
 .form {
   padding: 0 2.5rem 2rem;
   display: flex;
@@ -241,9 +235,7 @@ body {
   min-width: 0;
 }
 
-.field--wide {
-  flex: 2;
-}
+.field--wide { flex: 2; }
 
 label {
   font-size: 0.72rem;
@@ -297,7 +289,6 @@ select {
   cursor: pointer;
 }
 
-/* Credit Score Bar  */
 .score-track {
   width: 100%;
   height: 6px;
@@ -334,7 +325,6 @@ select {
   transition: all 0.2s;
 }
 
-/*  Submit Button  */
 .form-footer {
   padding-top: 1.5rem;
   border-top: 1px solid var(--border);
@@ -383,7 +373,6 @@ select {
   color: var(--gold);
 }
 
-/*  Result  */
 .result-wrap {
   margin: 0 2.5rem 3rem;
   animation: fadeUp 0.4s ease;
@@ -445,7 +434,6 @@ select {
   font-weight: 300;
 }
 
-/*  Confidence Bar  */
 .conf-block {
   width: 100%;
   display: flex;
@@ -504,13 +492,11 @@ select {
   margin-top: 0.1rem;
 }
 
-/* Animations*/
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/*  Responsive  */
 @media (max-width: 900px) {
   .result { flex-direction: column; }
   .result-left { border-right: none; border-bottom: 1px solid var(--border); }

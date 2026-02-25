@@ -20,34 +20,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (form) {
     form.addEventListener("submit", () => {
-      if (btnInner)   btnInner.style.display   = "none";
-      if (btnLoading) btnLoading.style.display  = "flex";
-      if (submitBtn)  submitBtn.disabled        = true;
+      if (btnInner)   btnInner.style.display  = "none";
+      if (btnLoading) btnLoading.style.display = "flex";
+      if (submitBtn)  submitBtn.disabled       = true;
     });
   }
 
-  const creditInput = document.getElementById("credit_score");
+  const creditInput = document.getElementById("cibil_score");
   const scoreBar    = document.getElementById("scoreBar");
   const scoreBadge  = document.getElementById("scoreBadge");
 
   function getScoreStyle(val) {
-    if (val < 580) return { label: "Poor",       color: "#8b1a1a", bg: "#fde8e8" };
-    if (val < 670) return { label: "Fair",        color: "#92400e", bg: "#fef3e2" };
-    if (val < 740) return { label: "Good",        color: "#1a6e47", bg: "#edf7f2" };
+    if (val < 500) return { label: "Poor",       color: "#8b1a1a", bg: "#fde8e8" };
+    if (val < 600) return { label: "Fair",        color: "#92400e", bg: "#fef3e2" };
+    if (val < 700) return { label: "Good",        color: "#1a6e47", bg: "#edf7f2" };
     if (val < 800) return { label: "Very Good",   color: "#1a4a8b", bg: "#e8f0fd" };
     return              { label: "Exceptional",   color: "#5b21b6", bg: "#f3e8ff" };
   }
 
   function updateScoreBar(val) {
     if (!scoreBar || !scoreBadge) return;
-    if (!val || isNaN(val) || val < 300 || val > 850) {
+    if (!val || isNaN(val) || val < 300 || val > 900) {
       scoreBar.style.width      = "0%";
       scoreBar.style.background = "#ddd";
       scoreBadge.textContent    = "";
       scoreBadge.style.cssText  = "";
       return;
     }
-    const pct   = ((val - 300) / (850 - 300)) * 100;
+    const pct   = ((val - 300) / (900 - 300)) * 100;
     const style = getScoreStyle(val);
     scoreBar.style.width           = pct + "%";
     scoreBar.style.backgroundColor = style.color;

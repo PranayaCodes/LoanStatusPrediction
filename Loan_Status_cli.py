@@ -1,166 +1,200 @@
-# predict_cli.py
-# Loan Status Prediction — Command Line Interface
-# Run: python predict_cli.py
-
 import os
 import sys
 import joblib
 import pandas as pd
 
-#  Paths 
+
+# Resolve paths relative to this file
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH  = os.path.join(BASE_DIR, "feature", "model.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "feature", "scaler.pkl")
 
+# Feature order must match exactly what the model was trained on
 FEATURE_COLUMNS = [
-    "Age",
-    "Income",
-    "Credit_Score",
-    "Loan_Amount",
-    "Loan_Term",
-    "Employment_Status_Self-Employed",
-    "Employment_Status_Unemployed",
+    "no_of_dependents",
+    "income_annum",
+    "loan_amount",
+    "loan_term",
+    "cibil_score",
+    "residential_assets_value",
+    "commercial_assets_value",
+    "luxury_assets_value",
+    "bank_asset_value",
+    "education_Not Graduate",
+    "self_employed_Yes",
 ]
 
-#  Helpers 
+
 def divider(char="─", width=52):
     print(char * width)
+
 
 def header():
     divider("═")
     print("  LOAN STATUS PREDICTION — CLI")
-    print("  Logistic Regression + SMOTE")
+    print("  Logistic Regression + SMOTE + GridSearchCV")
     divider("═")
     print()
 
+
 def get_float(prompt, min_val=None, max_val=None):
+    # Keep prompting until the user enters a valid number within the given range
     while True:
         try:
             val = float(input(f"  {prompt}: ").strip())
             if min_val is not None and val < min_val:
-                print(f"  ⚠  Value must be ≥ {min_val}")
+                print(f"  Value must be >= {min_val}")
                 continue
             if max_val is not None and val > max_val:
-                print(f"  ⚠  Value must be ≤ {max_val}")
+                print(f"  Value must be <= {max_val}")
                 continue
             return val
         except ValueError:
-            print("  ⚠  Please enter a valid number.")
+            print("  Please enter a valid number.")
 
-def get_employment():
-    options = {"1": "Employed", "2": "Self-Employed", "3": "Unemployed"}
-    print()
-    print("  Employment Status:")
-    for k, v in options.items():
-        print(f"    [{k}] {v}")
+
+def get_choice(prompt, options):
+    # Display labeled options and return the chosen value
+    print(f"\n  {prompt}:")
+    for key, label in options.items():
+        print(f"    [{key}] {label}")
     while True:
-        choice = input("  Select (1/2/3): ").strip()
+        choice = input(f"  Select ({'/'.join(options.keys())}): ").strip()
         if choice in options:
             return options[choice]
-        print("  ⚠  Please enter 1, 2, or 3.")
+        print(f"  Please enter one of: {', '.join(options.keys())}")
 
-def confidence_bar(pct, width=30):
-    filled = int(pct / 100 * width)
-    bar    = "█" * filled + "░" * (width - filled)
-    return f"[{bar}] {pct:.1f}%"
 
-def score_label(score):
-    if score < 580: return "Poor"
-    if score < 670: return "Fair"
-    if score < 740: return "Good"
-    if score < 800: return "Very Good"
+def cibil_label(score):
+    # Return a human-readable credit rating for a CIBIL score
+    if score < 500:
+        return "Poor"
+    if score < 600:
+        return "Fair"
+    if score < 700:
+        return "Good"
+    if score < 800:
+        return "Very Good"
     return "Exceptional"
 
-# Main 
+
+def confidence_bar(pct, width=30):
+    # Build a simple ASCII progress bar representing confidence percentage
+    filled = int(pct / 100 * width)
+    bar    = "█" * filled + "░" * (width - filled)
+    return f"[{bar}] {pct:.2f}%"
+
+
 def main():
     header()
 
-    # Load model & scaler
+    # Load saved model and scaler — exit early if they haven't been trained yet
     try:
         model  = joblib.load(MODEL_PATH)
         scaler = joblib.load(SCALER_PATH)
     except FileNotFoundError:
-        print("  ✗  Model or scaler not found.")
-        print("     Run 'python feature/train.py' first.")
+        print("  Model or scaler not found.")
+        print("  Run 'python feature/train.py' first.")
         sys.exit(1)
 
     print("  Enter applicant details below.")
     print()
 
-    # Section 01: Applicant Profile
+    # Section 01 — Applicant background information
     divider()
     print("  01 — APPLICANT PROFILE")
     divider()
-    age               = get_float("Age (18–100)", min_val=18, max_val=100)
-    income            = get_float("Annual Income (USD)", min_val=0)
-    employment_status = get_employment()
+    no_of_dependents = int(get_float("No. of Dependents (0–10)", min_val=0, max_val=10))
+    education        = get_choice("Education",    {"1": "Graduate", "2": "Not Graduate"})
+    self_employed    = get_choice("Self Employed", {"1": "Yes",       "2": "No"})
 
-    #  Section 02: Credit Profile
+    # Section 02 — Income and credit details
     print()
     divider()
-    print("  02 — CREDIT PROFILE")
+    print("  02 — FINANCIAL PROFILE")
     divider()
-    credit_score = get_float("Credit Score (300–850)", min_val=300, max_val=850)
-    print(f"  → Credit rating: {score_label(int(credit_score))}")
+    income_annum = get_float("Annual Income in Rs (e.g. 5000000)", min_val=0)
+    cibil_score  = int(get_float("CIBIL Score (300–900)", min_val=300, max_val=900))
+    print(f"  CIBIL Rating: {cibil_label(cibil_score)}")
 
-    #  Section 03: Loan Details
+    # Section 03 — Loan request details
     print()
     divider()
     print("  03 — LOAN DETAILS")
     divider()
-    loan_amount = get_float("Loan Amount (USD)", min_val=0)
-    loan_term   = get_float("Loan Term (months)", min_val=1)
+    loan_amount = get_float("Loan Amount in Rs (e.g. 10000000)", min_val=0)
+    loan_term   = int(get_float("Loan Term in years (e.g. 10)", min_val=1))
 
-    # Build Feature Vector
-    emp_self_employed = 1 if employment_status == "Self-Employed" else 0
-    emp_unemployed    = 1 if employment_status == "Unemployed"    else 0
+    # Section 04 — Asset holdings across different categories
+    print()
+    divider()
+    print("  04 — ASSET DETAILS")
+    divider()
+    residential_assets_value = get_float("Residential Assets Value in Rs", min_val=0)
+    commercial_assets_value  = get_float("Commercial Assets Value in Rs",   min_val=0)
+    luxury_assets_value      = get_float("Luxury Assets Value in Rs",       min_val=0)
+    bank_asset_value         = get_float("Bank Asset Value in Rs",          min_val=0)
 
+    # Convert categorical inputs to one-hot encoded binary values
+    edu_not_graduate = 1 if education     == "Not Graduate" else 0
+    self_emp_yes     = 1 if self_employed == "Yes"          else 0
+
+    # Build a single-row DataFrame in the exact column order the model expects
     raw = pd.DataFrame([[
-        age,
-        income,
-        credit_score,
+        no_of_dependents,
+        income_annum,
         loan_amount,
         loan_term,
-        emp_self_employed,
-        emp_unemployed,
+        cibil_score,
+        residential_assets_value,
+        commercial_assets_value,
+        luxury_assets_value,
+        bank_asset_value,
+        edu_not_graduate,
+        self_emp_yes,
     ]], columns=FEATURE_COLUMNS)
 
-    # Predict
+    # Scale and run prediction
     scaled      = scaler.transform(raw)
     prediction  = model.predict(scaled)[0]
     probability = model.predict_proba(scaled)[0]
     confidence  = round(float(max(probability)) * 100, 2)
 
-    #  Display Result
+    # Display the result
     print()
     divider("═")
     print("  ASSESSMENT RESULT")
     divider("═")
 
     if prediction == 1:
-        print("  ✓  LOAN APPROVED")
+        print("  LOAN APPROVED")
     else:
-        print("  ✗  LOAN REJECTED")
+        print("  LOAN REJECTED")
 
     print()
     print(f"  Confidence:  {confidence_bar(confidence)}")
     print(f"  Probability: {confidence}%")
     print()
 
-    #  Summary Table
+    # Display a clean summary of everything the user entered
     divider()
     print("  INPUT SUMMARY")
     divider()
-    print(f"  Age              : {int(age)}")
-    print(f"  Income           : ${income:,.0f}")
-    print(f"  Employment       : {employment_status}")
-    print(f"  Credit Score     : {int(credit_score)} ({score_label(int(credit_score))})")
-    print(f"  Loan Amount      : ${loan_amount:,.0f}")
-    print(f"  Loan Term        : {int(loan_term)} months")
+    print(f"  Dependents               : {no_of_dependents}")
+    print(f"  Education                : {education}")
+    print(f"  Self Employed            : {self_employed}")
+    print(f"  Annual Income            : Rs {income_annum:,.0f}")
+    print(f"  CIBIL Score              : {cibil_score} ({cibil_label(cibil_score)})")
+    print(f"  Loan Amount              : Rs {loan_amount:,.0f}")
+    print(f"  Loan Term                : {loan_term} years")
+    print(f"  Residential Assets       : Rs {residential_assets_value:,.0f}")
+    print(f"  Commercial Assets        : Rs {commercial_assets_value:,.0f}")
+    print(f"  Luxury Assets            : Rs {luxury_assets_value:,.0f}")
+    print(f"  Bank Assets              : Rs {bank_asset_value:,.0f}")
     divider("═")
     print()
 
-    #  Run 
+    # Let the user run another prediction without restarting the script
     again = input("  Run another prediction? (y/n): ").strip().lower()
     if again == "y":
         print()
@@ -169,6 +203,7 @@ def main():
         print()
         print("  Goodbye.")
         print()
+
 
 if __name__ == "__main__":
     main()

@@ -13,7 +13,6 @@
 
   <div class="layout">
 
-    <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
       <div class="sidebar-inner">
 
@@ -38,11 +37,15 @@
           </div>
           <div class="info-block">
             <span class="info-label">Calibration</span>
-            <span class="info-val">Sigmoid CV-5</span>
+            <span class="info-val">Isotonic CV-5</span>
+          </div>
+          <div class="info-block">
+            <span class="info-label">Tuning</span>
+            <span class="info-val">GridSearchCV</span>
           </div>
           <div class="info-block">
             <span class="info-label">Training Set</span>
-            <span class="info-val">2,000 records</span>
+            <span class="info-val">4,269 records</span>
           </div>
         </nav>
 
@@ -53,16 +56,14 @@
         </div>
 
         <div class="sidebar-footer">
-          <span class="mono">v1.0.0</span>
+          <span class="mono">v2.0.0</span>
         </div>
 
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
     <main class="content">
 
-      <!-- Top bar -->
       <div class="topbar">
         <div class="topbar-left">
           <span class="topbar-label">LOAN STATUS PREDICTION</span>
@@ -72,64 +73,86 @@
         </div>
       </div>
 
-      <!-- Page title -->
       <div class="page-head">
-        <div class="page-head-left">
-          <h1 class="page-title">Loan Application<br /><em>Review</em></h1>
-          <p class="page-sub">Fill in the applicant details below to receive an instant AI-driven credit decision with confidence scoring.</p>
-        </div>
+        <h1 class="page-title">Loan Application<br /><em>Review</em></h1>
+        <p class="page-sub">Fill in the applicant details below to receive an instant AI-driven credit decision with confidence scoring.</p>
       </div>
 
-      <!-- Form -->
       <form class="form" action="/predict" method="post" id="loanForm">
 
         <div class="section-label">01 — Applicant Profile</div>
         <div class="form-row">
           <div class="field">
-            <label for="age">Age <span class="unit">years</span></label>
-            <input type="number" id="age" name="age" placeholder="18 – 69" min="18" max="100" required />
+            <label for="no_of_dependents">No. of Dependents</label>
+            <input type="number" id="no_of_dependents" name="no_of_dependents" placeholder="0 – 5" min="0" max="10" required />
           </div>
           <div class="field">
-            <label for="income">Annual Income <span class="unit">USD</span></label>
-            <input type="number" id="income" name="income" placeholder="e.g. 85000" min="0" required />
-          </div>
-          <div class="field">
-            <label for="employment_status">Employment Status</label>
-            <select id="employment_status" name="employment_status" required>
+            <label for="education">Education</label>
+            <select id="education" name="education" required>
               <option value="" disabled selected>— Select —</option>
-              <option value="Employed">Employed</option>
-              <option value="Self-Employed">Self-Employed</option>
-              <option value="Unemployed">Unemployed</option>
+              <option value="Graduate">Graduate</option>
+              <option value="Not Graduate">Not Graduate</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="self_employed">Self Employed</label>
+            <select id="self_employed" name="self_employed" required>
+              <option value="" disabled selected>— Select —</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
             </select>
           </div>
         </div>
 
-        <div class="section-label">02 — Credit Profile</div>
+        <div class="section-label">02 — Financial Profile</div>
         <div class="form-row">
-          <div class="field field--wide">
-            <label for="credit_score">
-              Credit Score
-              <span class="score-badge" id="scoreBadge"></span>
-            </label>
-            <input type="number" id="credit_score" name="credit_score" placeholder="300 – 850" min="300" max="850" required />
+          <div class="field">
+            <label for="income_annum">Annual Income <span class="unit">₹</span></label>
+            <input type="number" id="income_annum" name="income_annum" placeholder="e.g. 5000000" min="0" required />
+          </div>
+          <div class="field">
+           <label for="cibil_score">Credit Score <span class="score-badge" id="scoreBadge"></span></label>
+            <input type="number" id="cibil_score" name="cibil_score" placeholder="300 – 900" min="300" max="900" required />
             <div class="score-track">
-              <div class="score-fill" id="scoreBar"></div>
-              <div class="score-markers">
-                <span>300</span><span>Poor</span><span>Fair</span><span>Good</span><span>850</span>
-              </div>
-            </div>
+           <div class="score-fill" id="scoreBar"></div>
+           <div class="score-markers">
+          <span>300</span><span>Poor</span><span>Fair</span><span>Good</span><span>900</span>
+        </div>
+</div>
           </div>
         </div>
 
         <div class="section-label">03 — Loan Details</div>
         <div class="form-row">
           <div class="field">
-            <label for="loan_amount">Loan Amount <span class="unit">USD</span></label>
-            <input type="number" id="loan_amount" name="loan_amount" placeholder="e.g. 15000" min="0" required />
+            <label for="loan_amount">Loan Amount <span class="unit">₹</span></label>
+            <input type="number" id="loan_amount" name="loan_amount" placeholder="e.g. 10000000" min="0" required />
           </div>
           <div class="field">
-            <label for="loan_term">Loan Term <span class="unit">months</span></label>
-            <input type="number" id="loan_term" name="loan_term" placeholder="12 – 60" min="1" required />
+            <label for="loan_term">Loan Term <span class="unit">years</span></label>
+            <input type="number" id="loan_term" name="loan_term" placeholder="2 – 20" min="1" required />
+          </div>
+        </div>
+
+        <div class="section-label">04 — Asset Details</div>
+        <div class="form-row">
+          <div class="field">
+            <label for="residential_assets_value">Residential Assets <span class="unit">₹</span></label>
+            <input type="number" id="residential_assets_value" name="residential_assets_value" placeholder="e.g. 5000000" min="0" required />
+          </div>
+          <div class="field">
+            <label for="commercial_assets_value">Commercial Assets <span class="unit">₹</span></label>
+            <input type="number" id="commercial_assets_value" name="commercial_assets_value" placeholder="e.g. 2000000" min="0" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="luxury_assets_value">Luxury Assets <span class="unit">₹</span></label>
+            <input type="number" id="luxury_assets_value" name="luxury_assets_value" placeholder="e.g. 8000000" min="0" required />
+          </div>
+          <div class="field">
+            <label for="bank_asset_value">Bank Assets <span class="unit">₹</span></label>
+            <input type="number" id="bank_asset_value" name="bank_asset_value" placeholder="e.g. 3000000" min="0" required />
           </div>
         </div>
 
@@ -145,7 +168,6 @@
 
       </form>
 
-      <!-- RESULT -->
       {% if result %}
       <div class="result-wrap" id="resultWrap">
         <div class="result result--{{ result_class }}">
@@ -157,7 +179,6 @@
           </div>
 
           <div class="result-right">
-            <!-- Confidence Bar -->
             <div class="conf-block">
               <div class="conf-label-row">
                 <span class="conf-title">Confidence</span>
@@ -165,8 +186,8 @@
               </div>
               <div class="conf-track">
                 <div class="conf-fill conf-fill--{{ result_class }}"
-                        data-confidence="{{ confidence }}"
-                      style="width: 0%"></div>
+                     data-confidence="{{ confidence }}"
+                     style="width: 0%"></div>
               </div>
               <div class="conf-scale">
                 <span>0%</span>

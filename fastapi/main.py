@@ -1,95 +1,100 @@
-# main.py
-# Loan Status Prediction — FastAPI App
-
-import sys
 import os
-
-# Allow imports from project root
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
 import joblib
-import numpy as np
 import pandas as pd
-
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-# ── App Setup ──────────────────────────────────────────────
-app = FastAPI(title="AI Loan Predictor")
 
-BASE_DIR = os.path.dirname(__file__)
+# Resolve paths relative to this file so the app works from any directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(BASE_DIR, ".."))
 
+app = FastAPI()
+
+# Serve static files (CSS, JS) from the static folder
 app.mount(
     "/static",
     StaticFiles(directory=os.path.join(BASE_DIR, "static")),
     name="static",
 )
 
+# Jinja2 templates for rendering HTML
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
-# ── Load Model & Scaler ────────────────────────────────────
-MODEL_PATH  = os.path.join(BASE_DIR, "..", "feature", "model.pkl")
-SCALER_PATH = os.path.join(BASE_DIR, "..", "feature", "scaler.pkl")
+# Load trained model and scaler once at startup
+model  = joblib.load(os.path.join(ROOT_DIR, "feature", "model.pkl"))
+scaler = joblib.load(os.path.join(ROOT_DIR, "feature", "scaler.pkl"))
 
-model  = joblib.load(MODEL_PATH)
-scaler = joblib.load(SCALER_PATH)
-
-# ── Feature columns (must match processed_data.csv order) ──
-# Employment_Status has 3 values: Employed, Self-Employed, Unemployed
-# After get_dummies(drop_first=True), "Employed" is the baseline (dropped)
+# Feature order must match exactly what the model was trained on
 FEATURE_COLUMNS = [
-    "Age",
-    "Income",
-    "Credit_Score",
-    "Loan_Amount",
-    "Loan_Term",
-    "Employment_Status_Self-Employed",
-    "Employment_Status_Unemployed",
+    "no_of_dependents",
+    "income_annum",
+    "loan_amount",
+    "loan_term",
+    "cibil_score",
+    "residential_assets_value",
+    "commercial_assets_value",
+    "luxury_assets_value",
+    "bank_asset_value",
+    "education_Not Graduate",
+    "self_employed_Yes",
 ]
 
-# ── Routes ─────────────────────────────────────────────────
+
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def home(request: Request):
+    # Render the main form page with no prediction result
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.post("/predict", response_class=HTMLResponse)
 async def predict(
     request: Request,
-    age: float             = Form(...),
-    income: float          = Form(...),
-    credit_score: float    = Form(...),
-    loan_amount: float     = Form(...),
-    loan_term: float       = Form(...),
-    employment_status: str = Form(...),
+    no_of_dependents:          int   = Form(...),
+    income_annum:              float = Form(...),
+    loan_amount:               float = Form(...),
+    loan_term:                 int   = Form(...),
+    cibil_score:               int   = Form(...),
+    residential_assets_value:  float = Form(...),
+    commercial_assets_value:   float = Form(...),
+    luxury_assets_value:       float = Form(...),
+    bank_asset_value:          float = Form(...),
+    education:                 str   = Form(...),
+    self_employed:             str   = Form(...),
 ):
-    # One-hot encode Employment_Status (baseline = Employed)
-    emp_self_employed = 1 if employment_status == "Self-Employed" else 0
-    emp_unemployed    = 1 if employment_status == "Unemployed"    else 0
+    # Convert categorical fields to one-hot encoded values
+    edu_not_graduate = 1 if education     == "Not Graduate" else 0
+    self_emp_yes     = 1 if self_employed == "Yes"          else 0
 
+    # Build a single-row DataFrame in the exact column order the model expects
     raw = pd.DataFrame([[
-        age,
-        income,
-        credit_score,
+        no_of_dependents,
+        income_annum,
         loan_amount,
         loan_term,
-        emp_self_employed,
-        emp_unemployed,
+        cibil_score,
+        residential_assets_value,
+        commercial_assets_value,
+        luxury_assets_value,
+        bank_asset_value,
+        edu_not_graduate,
+        self_emp_yes,
     ]], columns=FEATURE_COLUMNS)
 
-    scaled = scaler.transform(raw)
+    # Scale and predict
+    scaled     = scaler.transform(raw)
     prediction = model.predict(scaled)[0]
-    probability = model.predict_proba(scaled)[0]
+    proba      = model.predict_proba(scaled)[0]
+    confidence = round(float(max(proba)) * 100, 2)
 
-    result = "Approved ✓" if prediction == 1 else "Rejected ✗"
-    confidence = round(float(max(probability)) * 100, 2)
+    result       = "Approved" if prediction == 1 else "Rejected"
     result_class = "approved" if prediction == 1 else "rejected"
 
     return templates.TemplateResponse("index.html", {
         "request":      request,
         "result":       result,
-        "confidence":   confidence,
         "result_class": result_class,
+        "confidence":   confidence,
     })
