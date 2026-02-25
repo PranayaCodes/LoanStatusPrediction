@@ -7,7 +7,7 @@ import sys
 import joblib
 import pandas as pd
 
-# ── Paths ───────────────────────────────────────────────────
+#  Paths 
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH  = os.path.join(BASE_DIR, "feature", "model.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "feature", "scaler.pkl")
@@ -22,7 +22,7 @@ FEATURE_COLUMNS = [
     "Employment_Status_Unemployed",
 ]
 
-# ── Helpers ─────────────────────────────────────────────────
+#  Helpers 
 def divider(char="─", width=52):
     print(char * width)
 
@@ -71,7 +71,7 @@ def score_label(score):
     if score < 800: return "Very Good"
     return "Exceptional"
 
-#  Main
+# Main 
 def main():
     header()
 
@@ -87,7 +87,7 @@ def main():
     print("  Enter applicant details below.")
     print()
 
-    #  Section 01: Applicant Profile
+    # Section 01: Applicant Profile
     divider()
     print("  01 — APPLICANT PROFILE")
     divider()
@@ -111,7 +111,7 @@ def main():
     loan_amount = get_float("Loan Amount (USD)", min_val=0)
     loan_term   = get_float("Loan Term (months)", min_val=1)
 
-    #  Build Feature Vector
+    # Build Feature Vector
     emp_self_employed = 1 if employment_status == "Self-Employed" else 0
     emp_unemployed    = 1 if employment_status == "Unemployed"    else 0
 
@@ -125,13 +125,13 @@ def main():
         emp_unemployed,
     ]], columns=FEATURE_COLUMNS)
 
-    #  Predict
+    # Predict
     scaled      = scaler.transform(raw)
     prediction  = model.predict(scaled)[0]
     probability = model.predict_proba(scaled)[0]
     confidence  = round(float(max(probability)) * 100, 2)
 
-    # ── Display Result
+    #  Display Result
     print()
     divider("═")
     print("  ASSESSMENT RESULT")
@@ -147,7 +147,7 @@ def main():
     print(f"  Probability: {confidence}%")
     print()
 
-    # ── Summary Table
+    #  Summary Table
     divider()
     print("  INPUT SUMMARY")
     divider()
@@ -160,7 +160,7 @@ def main():
     divider("═")
     print()
 
-    # ── Run another?
+    #  Run 
     again = input("  Run another prediction? (y/n): ").strip().lower()
     if again == "y":
         print()

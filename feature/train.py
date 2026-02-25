@@ -15,18 +15,17 @@ from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score,
 from imblearn.over_sampling import SMOTE
 
 
-# CREATE VISUALIZATION FOLDER
+# Create folder for saving visualizations
 os.makedirs("feature/visualizations", exist_ok=True)
 
-
-# LOAD PROCESSED DATA
+# Load preprocessed data (unscaled)
 data = pd.read_csv("data/processed_data.csv")
 
 X = data.drop("Loan_Approved", axis=1)
 y = data["Loan_Approved"]
 
 
-# VISUALIZATION 1 — CLASS DISTRIBUTION BEFORE SMOTE
+# Class distribution before SMOTE
 plt.figure()
 sns.countplot(x=y)
 plt.title("Class Distribution Before SMOTE")
@@ -36,24 +35,22 @@ plt.savefig("feature/visualizations/class_before_smote.png")
 plt.close()
 
 
-# TRAIN TEST SPLIT
+# Split data — stratify preserves class ratio in both sets
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-
-# FEATURE SCALING
+# Fit scaler on training data only, then apply to both sets
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled  = scaler.transform(X_test)
 
-
-# APPLY SMOTE
+# Apply SMOTE only on training data to fix class imbalance
 smote = SMOTE(random_state=42)
 X_train_resampled, y_train_resampled = smote.fit_resample(X_train_scaled, y_train)
 
 
-# VISUALIZATION 2 — CLASS DISTRIBUTION AFTER SMOTE
+# Class distribution after SMOTE
 plt.figure()
 sns.countplot(x=y_train_resampled)
 plt.title("Class Distribution After SMOTE")
@@ -63,24 +60,24 @@ plt.savefig("feature/visualizations/class_after_smote.png")
 plt.close()
 
 
-# BASELINE MODEL (no SMOTE) — for ROC comparison
+# Baseline model without SMOTE — used only for ROC comparison
 baseline_model = LogisticRegression(max_iter=1000)
 baseline_model.fit(X_train_scaled, y_train)
 y_prob_baseline = baseline_model.predict_proba(X_test_scaled)[:, 1]
 
-
-# TRAIN CALIBRATED LOGISTIC REGRESSION MODEL WITH SMOTE
-base_model = LogisticRegression(max_iter=1000)
-model = CalibratedClassifierCV(base_model, cv=5, method='sigmoid')
+# Main model with SMOTE and probability calibration
+# C=0.01 applies strong regularization to prevent overconfident predictions
+# isotonic calibration produces more realistic confidence scores
+base_model = LogisticRegression(max_iter=1000, C=0.01, solver='lbfgs')
+model = CalibratedClassifierCV(base_model, cv=5, method='isotonic')
 model.fit(X_train_resampled, y_train_resampled)
 
 
-# MAKE PREDICTIONS
-y_pred      = model.predict(X_test_scaled)
+# Predictions on test set
+y_pred       = model.predict(X_test_scaled)
 y_prob_smote = model.predict_proba(X_test_scaled)[:, 1]
 
-
-# CALCULATE METRICS
+# Evaluation metrics
 accuracy  = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
 recall    = recall_score(y_test, y_pred)
@@ -93,7 +90,7 @@ print("Recall   :", round(recall, 4))
 print("F1 Score :", round(f1, 4))
 
 
-# VISUALIZATION 3 — CONFUSION MATRIX
+# Confusion matrix
 cm = confusion_matrix(y_test, y_pred)
 plt.figure()
 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -107,7 +104,7 @@ plt.savefig("feature/visualizations/confusion_matrix.png")
 plt.close()
 
 
-# VISUALIZATION 4 — ROC CURVE (Baseline vs SMOTE)
+# ROC curve comparing baseline vs SMOTE model
 fpr1, tpr1, _ = roc_curve(y_test, y_prob_baseline)
 auc1          = auc(fpr1, tpr1)
 
@@ -130,8 +127,7 @@ plt.close()
 print(f"\nROC AUC — Baseline: {auc1:.4f} | SMOTE: {auc2:.4f}")
 
 
-# VISUALIZATION 5 — FEATURE COEFFICIENTS
-# Extract the underlying LR from the calibrated wrapper
+# Feature coefficients to show impact of each feature on prediction
 lr_coef = base_model.fit(X_train_resampled, y_train_resampled)
 coef_df = pd.DataFrame({
     "Feature":     X.columns,
@@ -149,7 +145,7 @@ plt.savefig("feature/visualizations/feature_coefficients.png")
 plt.close()
 
 
-# SAVE MODEL AND SCALER
+# Save model and scaler for use in FastAPI and CLI
 joblib.dump(model,  "feature/model.pkl")
 joblib.dump(scaler, "feature/scaler.pkl")
 

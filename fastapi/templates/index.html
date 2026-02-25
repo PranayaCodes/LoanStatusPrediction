@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LoanIQ — Credit Assessment</title>
+  <title>Loan Status Prediction</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -21,7 +21,7 @@
           <div class="brand-mark">L</div>
           <div class="brand-text">
             <span class="brand-name">LoanIQ</span>
-            <span class="brand-tag">Credit Intelligence</span>
+            <span class="brand-tag">Loan Status Prediction</span>
           </div>
         </div>
 
@@ -65,17 +65,19 @@
       <!-- Top bar -->
       <div class="topbar">
         <div class="topbar-left">
-          <span class="topbar-label">CREDIT ASSESSMENT TERMINAL</span>
+          <span class="topbar-label">LOAN STATUS PREDICTION</span>
         </div>
-        <div class="topbar-right mono">
-          <span id="clock"></span>
+        <div class="topbar-right">
+          <span id="clock" class="mono"></span>
         </div>
       </div>
 
       <!-- Page title -->
       <div class="page-head">
-        <h1 class="page-title">Loan Application<br /><em>Review</em></h1>
-        <p class="page-sub">Complete the form below to receive an instant AI-driven credit decision with confidence scoring.</p>
+        <div class="page-head-left">
+          <h1 class="page-title">Loan Application<br /><em>Review</em></h1>
+          <p class="page-sub">Fill in the applicant details below to receive an instant AI-driven credit decision with confidence scoring.</p>
+        </div>
       </div>
 
       <!-- Form -->
@@ -92,7 +94,7 @@
             <input type="number" id="income" name="income" placeholder="e.g. 85000" min="0" required />
           </div>
           <div class="field">
-            <label for="employment_status">Employment</label>
+            <label for="employment_status">Employment Status</label>
             <select id="employment_status" name="employment_status" required>
               <option value="" disabled selected>— Select —</option>
               <option value="Employed">Employed</option>
@@ -110,8 +112,11 @@
               <span class="score-badge" id="scoreBadge"></span>
             </label>
             <input type="number" id="credit_score" name="credit_score" placeholder="300 – 850" min="300" max="850" required />
-            <div class="score-bar-wrap">
-              <div class="score-bar" id="scoreBar"></div>
+            <div class="score-track">
+              <div class="score-fill" id="scoreBar"></div>
+              <div class="score-markers">
+                <span>300</span><span>Poor</span><span>Fair</span><span>Good</span><span>850</span>
+              </div>
             </div>
           </div>
         </div>
@@ -130,7 +135,7 @@
 
         <div class="form-footer">
           <button type="submit" class="btn" id="submitBtn">
-            <span class="btn-inner">
+            <span class="btn-inner" id="btnInner">
               <span class="btn-text">Run Assessment</span>
               <span class="btn-arrow">→</span>
             </span>
@@ -144,24 +149,35 @@
       {% if result %}
       <div class="result-wrap" id="resultWrap">
         <div class="result result--{{ result_class }}">
+
           <div class="result-left">
             <div class="result-tag">Decision</div>
             <div class="result-verdict">{{ result }}</div>
             <div class="result-sub">Model confidence: <strong>{{ confidence }}%</strong></div>
           </div>
+
           <div class="result-right">
-            <div class="confidence-ring">
-              <svg viewBox="0 0 80 80" class="ring-svg">
-                <circle cx="40" cy="40" r="32" class="ring-bg" />
-                <circle cx="40" cy="40" r="32" class="ring-fill ring--{{ result_class }}"
-                  stroke-dasharray="{{ (confidence / 100 * 201.06) | round(2) }} 201.06"
-                  stroke-dashoffset="50.27" />
-              </svg>
-              <div class="ring-label">
-                <span class="ring-pct">{{ confidence }}%</span>
+            <!-- Confidence Bar -->
+            <div class="conf-block">
+              <div class="conf-label-row">
+                <span class="conf-title">Confidence</span>
+                <span class="conf-pct conf-pct--{{ result_class }}">{{ confidence }}%</span>
+              </div>
+              <div class="conf-track">
+                <div class="conf-fill conf-fill--{{ result_class }}"
+                        data-confidence="{{ confidence }}"
+                      style="width: 0%"></div>
+              </div>
+              <div class="conf-scale">
+                <span>0%</span>
+                <span>25%</span>
+                <span>50%</span>
+                <span>75%</span>
+                <span>100%</span>
               </div>
             </div>
           </div>
+
         </div>
       </div>
       {% endif %}

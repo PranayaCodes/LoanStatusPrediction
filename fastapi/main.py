@@ -16,8 +16,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-#  App Setup 
-
+# ── App Setup ──────────────────────────────────────────────
 app = FastAPI(title="AI Loan Predictor")
 
 BASE_DIR = os.path.dirname(__file__)
@@ -30,12 +29,16 @@ app.mount(
 
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
+# ── Load Model & Scaler ────────────────────────────────────
 MODEL_PATH  = os.path.join(BASE_DIR, "..", "feature", "model.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "..", "feature", "scaler.pkl")
 
 model  = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 
+# ── Feature columns (must match processed_data.csv order) ──
+# Employment_Status has 3 values: Employed, Self-Employed, Unemployed
+# After get_dummies(drop_first=True), "Employed" is the baseline (dropped)
 FEATURE_COLUMNS = [
     "Age",
     "Income",
@@ -46,7 +49,7 @@ FEATURE_COLUMNS = [
     "Employment_Status_Unemployed",
 ]
 
-
+# ── Routes ─────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -62,7 +65,7 @@ async def predict(
     loan_term: float       = Form(...),
     employment_status: str = Form(...),
 ):
-    
+    # One-hot encode Employment_Status (baseline = Employed)
     emp_self_employed = 1 if employment_status == "Self-Employed" else 0
     emp_unemployed    = 1 if employment_status == "Unemployed"    else 0
 
