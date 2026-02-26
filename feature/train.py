@@ -24,9 +24,7 @@ from imblearn.over_sampling import SMOTE
 os.makedirs("feature/visualizations", exist_ok=True)
 
 
-# ── Load Processed Data ──────────────────────────────────────
-# Reading the cleaned and encoded dataset produced by preprocess.py.
-# The target column loan_status is separated from the input features.
+# Load the cleaned dataset produced by preprocess.py and separate features from target.
 
 data = pd.read_csv("data/processed_data.csv")
 
@@ -38,9 +36,7 @@ print(f"Dataset loaded. Shape: {data.shape}")
 print(f"Features: {X.columns.tolist()}")
 
 
-# ── Class Distribution Before SMOTE ─────────────────────────
-# Visualizing the class imbalance in the raw dataset before
-# any resampling. This helps show why SMOTE is needed.
+# Visualize class imbalance before resampling to show why SMOTE is needed.
 
 plt.figure(figsize=(6, 4))
 sns.countplot(x=y, hue=y, palette="muted", legend=False)
@@ -52,9 +48,7 @@ plt.savefig("feature/visualizations/class_before_smote.png")
 plt.close()
 
 
-# ── Train / Test Split ───────────────────────────────────────
-# Splitting the data into 80% training and 20% testing.
-# stratify=y ensures both splits have the same class ratio.
+# Split into 80% training and 20% testing with stratification to preserve class ratio.
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
@@ -63,19 +57,14 @@ X_train, X_test, y_train, y_test = train_test_split(
 print(f"\nTrain size: {X_train.shape[0]}  |  Test size: {X_test.shape[0]}")
 
 
-# ── Feature Scaling ──────────────────────────────────────────
-# Fitting the scaler only on training data to prevent leakage.
-# The same scaler is then applied to the test set for consistency.
+# Scale features using the training set only to prevent data leakage.
 
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled  = scaler.transform(X_test)
 
 
-# ── SMOTE Resampling ─────────────────────────────────────────
-# Applying SMOTE only on the training data to fix class imbalance
-# by generating synthetic samples for the minority class.
-# Applying it to test data would give misleading evaluation results.
+# Apply SMOTE on training data only to balance the minority class without touching the test set.
 
 smote = SMOTE(random_state=42)
 X_train_resampled, y_train_resampled = smote.fit_resample(X_train_scaled, y_train)
@@ -83,8 +72,7 @@ X_train_resampled, y_train_resampled = smote.fit_resample(X_train_scaled, y_trai
 print(f"\nAfter SMOTE — Resampled training size: {X_train_resampled.shape[0]}")
 
 
-# ── Class Distribution After SMOTE ──────────────────────────
-# Confirming that both classes are now balanced after resampling.
+# Confirm both classes are balanced after resampling.
 
 plt.figure(figsize=(6, 4))
 sns.countplot(x=y_train_resampled, hue=y_train_resampled, palette="muted", legend=False)
@@ -96,19 +84,29 @@ plt.savefig("feature/visualizations/class_after_smote.png")
 plt.close()
 
 
-# ── Baseline Model ───────────────────────────────────────────
-# Training a simple logistic regression without SMOTE to use
-# as a comparison baseline in the ROC curve later.
+# Train a baseline model without SMOTE to compare against the final model.
 
 baseline_model = LogisticRegression(max_iter=1000)
 baseline_model.fit(X_train_scaled, y_train)
-y_prob_baseline = baseline_model.predict_proba(X_test_scaled)[:, 1]
+y_prob_baseline  = baseline_model.predict_proba(X_test_scaled)[:, 1]
+y_pred_baseline  = baseline_model.predict(X_test_scaled)
+
+baseline_accuracy  = accuracy_score(y_test, y_pred_baseline)
+baseline_precision = precision_score(y_test, y_pred_baseline)
+baseline_recall    = recall_score(y_test, y_pred_baseline)
+baseline_f1        = f1_score(y_test, y_pred_baseline)
+
+print("\n" + "=" * 55)
+print("  BASELINE MODEL PERFORMANCE (No SMOTE)")
+print("=" * 55)
+print(f"  Accuracy  : {round(baseline_accuracy, 4)}")
+print(f"  Precision : {round(baseline_precision, 4)}")
+print(f"  Recall    : {round(baseline_recall, 4)}")
+print(f"  F1 Score  : {round(baseline_f1, 4)}")
 
 
-# ── GridSearchCV ─────────────────────────────────────────────
-# Using GridSearchCV to find the optimal regularization strength C.
-# A lower C means more regularization, higher C means less.
-# We score on F1 since the dataset has class imbalance.
+# Use GridSearchCV with 5-fold cross-validation to find the best regularization value C.
+# F1 is used as the scoring metric since the dataset has class imbalance.
 
 print("\nRunning GridSearchCV to find best C...")
 
@@ -137,19 +135,15 @@ print("\nGridSearchCV Results:")
 print(results_df.to_string(index=False))
 
 
-# ── Final Model ──────────────────────────────────────────────
-# Training the final model using the best C with isotonic calibration.
-# Isotonic calibration produces more reliable confidence scores
-# than the default sigmoid method.
+# Train the final model with the best C and wrap it in isotonic calibration
+# so the confidence scores returned by the web app are more reliable.
 
 base_model = LogisticRegression(max_iter=1000, C=best_C, solver="lbfgs")
 model = CalibratedClassifierCV(base_model, cv=5, method="isotonic")
 model.fit(X_train_resampled, y_train_resampled)
 
 
-# ── Evaluation ───────────────────────────────────────────────
-# Evaluating the model on the held-out test set using standard
-# classification metrics to measure real-world performance.
+# Evaluate the final model on the untouched test set.
 
 y_pred       = model.predict(X_test_scaled)
 y_prob_smote = model.predict_proba(X_test_scaled)[:, 1]
@@ -168,7 +162,8 @@ print(f"  Recall    : {round(recall, 4)}")
 print(f"  F1 Score  : {round(f1, 4)}")
 
 
-# Confusion matrix showing true vs predicted outcomes
+# Confusion matrix showing true vs predicted outcomes.
+
 cm = confusion_matrix(y_test, y_pred)
 
 plt.figure(figsize=(6, 5))
@@ -188,7 +183,8 @@ plt.savefig("feature/visualizations/confusion_matrix.png")
 plt.close()
 
 
-# ROC curve comparing baseline vs SMOTE model
+# ROC curve comparing baseline vs SMOTE model to show the impact of resampling.
+
 fpr1, tpr1, _ = roc_curve(y_test, y_prob_baseline)
 auc1          = auc(fpr1, tpr1)
 
@@ -211,7 +207,8 @@ plt.close()
 print(f"\n  ROC AUC — Baseline: {auc1:.4f}  |  SMOTE: {auc2:.4f}")
 
 
-# Interactive ROC curve using Plotly
+# Interactive ROC curve using Plotly for the web report.
+
 fig = go.Figure()
 
 fig.add_trace(go.Scatter(
@@ -243,7 +240,8 @@ fig.update_layout(
 fig.write_html("feature/visualizations/roc_curve_interactive.html")
 
 
-# GridSearchCV C value vs F1 Score chart
+# Bar chart showing how each C value performed during GridSearchCV.
+
 plt.figure(figsize=(7, 4))
 plt.plot(
     results_df["C Value"].astype(float),
@@ -263,8 +261,8 @@ plt.savefig("feature/visualizations/gridsearch_results.png")
 plt.close()
 
 
-# Feature coefficients showing how much each feature pushes
-# toward approval or rejection in the logistic regression model
+# Feature coefficients showing which features push toward approval or rejection.
+
 lr_coef = base_model.fit(X_train_resampled, y_train_resampled)
 coef_df = pd.DataFrame({
     "Feature":     X.columns,
@@ -282,9 +280,7 @@ plt.savefig("feature/visualizations/feature_coefficients.png")
 plt.close()
 
 
-# ── Save Model and Scaler ────────────────────────────────────
-# Saving the trained model and scaler so they can be loaded
-# by the FastAPI app and the CLI without retraining.
+# Save the trained model and scaler so FastAPI and the CLI can load them without retraining.
 
 joblib.dump(model,  "feature/model.pkl")
 joblib.dump(scaler, "feature/scaler.pkl")

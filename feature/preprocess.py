@@ -65,6 +65,30 @@ data.drop(columns=["loan_id"], inplace=True)
 print("\nDropped column: loan_id")
 
 
+# After removing duplicates and loan_id we do a second overview
+# to confirm the dataset is clean and ready for EDA and encoding.
+
+print("\n DATASET OVERVIEW (AFTER CLEANING)\n")
+
+print("Dataset shape (rows, columns):")
+print(data.shape)
+
+print("\nColumns:")
+print(data.columns.tolist())
+
+print("\nData types:")
+print(data.dtypes)
+
+print("\nMissing values:")
+print(data.isnull().sum())
+
+print("\nStatistical summary:")
+print(data.describe())
+
+print("\nLoan status distribution:")
+print(data["loan_status"].value_counts())
+
+
 # Generating charts to understand the distribution of features
 # and how they relate to the loan approval outcome.
 # These are saved to disk and not shown interactively.
